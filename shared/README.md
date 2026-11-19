@@ -130,7 +130,10 @@ After READY, send an opcode 1 frame:
   activity as `data` on success, or `"evt": "ERROR"` with
   `{"code":<n>,"message":"<text>"}` on failure.
 
-Field rules the builder enforces so discord doesn't reject the payload:
+Field rules the builder enforces so discord doesn't reject the payload. Text
+that is too long is cut to the limit; structural problems (too many buttons, a
+bad url, an impossible party size) are typed errors instead, because silently
+changing those would be confusing:
 
 - empty strings and empty objects are removed entirely, never sent as `""`
 - `details`, `state`: at most 128 characters
@@ -169,9 +172,9 @@ walk pipes 0 to 9 again. After READY, re-send the last desired activity.
 
 ### reference test vectors
 
-An empty `SET_ACTIVITY` clear frame for nonce `n` is the 8 byte header followed
-by the json. For the handshake `{"v":1,"client_id":"1"}` (23 bytes) the full
-frame is:
+Framing only (a codec doesn't look inside the json, and a real handshake needs
+a real 15 to 25 digit id). For the payload `{"v":1,"client_id":"1"}` (23 bytes)
+sent with opcode 0, the full frame is:
 
 ```
 00 00 00 00  17 00 00 00  {"v":1,"client_id":"1"}

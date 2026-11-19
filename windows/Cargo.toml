@@ -1,0 +1,13 @@
+# `cargo test` in this folder only builds the platform-independent core, so it
+# runs anywhere (linux and mac included). The tauri app is a workspace member
+# too, build it with `--workspace` or via `npm run tauri build`.
+[workspace]
+resolver = "2"
+members = ["core"]
+default-members = ["core"]
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true
+opt-level = "s"
