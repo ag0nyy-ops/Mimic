@@ -1,0 +1,18 @@
+# rust
+target/
+Cargo.lock.bak
+
+# node
+node_modules/
+dist/
+
+# tauri
+windows/src-tauri/gen/
+windows/src-tauri/target/
+
+# os / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log
