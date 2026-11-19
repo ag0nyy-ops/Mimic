@@ -3,7 +3,7 @@
 # too, build it with `--workspace` or via `npm run tauri build`.
 [workspace]
 resolver = "2"
-members = ["core"]
+members = ["core", "src-tauri"]
 default-members = ["core"]
 
 [profile.release]

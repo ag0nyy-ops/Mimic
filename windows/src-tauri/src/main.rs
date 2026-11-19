@@ -1,0 +1,6 @@
+// no console window in release builds on windows
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
+fn main() {
+    mimic_lib::run()
+}

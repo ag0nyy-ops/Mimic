@@ -54,6 +54,21 @@ pub enum ActivityError {
     BadParty(String),
 }
 
+impl ActivityError {
+    /// Which form field the error is about, as a dotted path a ui can match:
+    /// `buttons`, `buttons.0.label`, `buttons.1.url`, `party`.
+    pub fn field(&self) -> String {
+        match self {
+            Self::TooManyButtons { .. } => "buttons".into(),
+            Self::ButtonLabelMissing { index } | Self::ButtonLabelTooLong { index, .. } => {
+                format!("buttons.{index}.label")
+            }
+            Self::BadButtonUrl { index, .. } => format!("buttons.{index}.url"),
+            Self::BadParty(_) => "party".into(),
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[serde(default)]
 pub struct ButtonInput {
@@ -594,6 +609,21 @@ mod tests {
         let b = new_nonce();
         assert_ne!(a, b);
         assert!(Uuid::parse_str(&a).is_ok());
+    }
+
+    #[test]
+    fn errors_know_which_field_they_belong_to() {
+        assert_eq!(ActivityError::TooManyButtons { count: 3 }.field(), "buttons");
+        assert_eq!(ActivityError::ButtonLabelMissing { index: 1 }.field(), "buttons.1.label");
+        assert_eq!(
+            ActivityError::ButtonLabelTooLong { index: 0, len: 40 }.field(),
+            "buttons.0.label"
+        );
+        assert_eq!(
+            ActivityError::BadButtonUrl { index: 1, problem: UrlProblem::Missing }.field(),
+            "buttons.1.url"
+        );
+        assert_eq!(ActivityError::BadParty("x".into()).field(), "party");
     }
 
     #[test]
