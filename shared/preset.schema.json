@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/ag0nyy-ops/mimic/shared/preset.schema.json",
+  "title": "mimic preset store",
+  "description": "On-disk format for mimic's saved presets. The root object is the store; $defs/preset is a single preset.",
+  "type": "object",
+  "required": ["version", "presets"],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "const": 1 },
+    "lastPresetId": {
+      "description": "Id of the preset to restore on launch. Null or absent means start with no presence.",
+      "type": ["string", "null"]
+    },
+    "presets": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/preset" }
+    }
+  },
+  "$defs": {
+    "preset": {
+      "type": "object",
+      "required": ["id", "name", "game"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "description": "Stable uuid generated when the preset is created.", "type": "string", "minLength": 1 },
+        "name": { "description": "Label shown in the preset list and tray menu.", "type": "string", "minLength": 1, "maxLength": 64 },
+        "game": {
+          "type": "object",
+          "required": ["id", "name"],
+          "additionalProperties": false,
+          "properties": {
+            "id": { "description": "Discord application id (the ipc client_id). Must come from games.json.", "type": "string", "pattern": "^[0-9]{15,25}$" },
+            "name": { "type": "string", "minLength": 1 }
+          }
+        },
+        "details": { "type": "string", "maxLength": 128, "default": "" },
+        "state": { "type": "string", "maxLength": 128, "default": "" },
+        "assets": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "largeImage": { "type": "string", "maxLength": 256, "default": "" },
+            "largeText": { "type": "string", "maxLength": 128, "default": "" },
+            "smallImage": { "type": "string", "maxLength": 256, "default": "" },
+            "smallText": { "type": "string", "maxLength": 128, "default": "" }
+          }
+        },
+        "timer": {
+          "description": "none: no timestamp. now: start counting from the moment the preset is applied. offset: start counting from offsetSeconds ago.",
+          "type": "object",
+          "required": ["mode"],
+          "additionalProperties": false,
+          "properties": {
+            "mode": { "enum": ["none", "now", "offset"] },
+            "offsetSeconds": { "description": "Used when mode is offset: how many seconds of elapsed time to show initially.", "type": "integer", "minimum": 0, "default": 0 }
+          }
+        },
+        "party": {
+          "description": "Null or absent means no party size.",
+          "type": ["object", "null"],
+          "required": ["current", "max"],
+          "additionalProperties": false,
+          "properties": {
+            "current": { "type": "integer", "minimum": 1 },
+            "max": { "type": "integer", "minimum": 1 }
+          }
+        },
+        "buttons": {
+          "type": "array",
+          "maxItems": 2,
+          "items": {
+            "type": "object",
+            "required": ["label", "url"],
+            "additionalProperties": false,
+            "properties": {
+              "label": { "type": "string", "minLength": 1, "maxLength": 32 },
+              "url": { "type": "string", "pattern": "^https?://", "maxLength": 512 }
+            }
+          }
+        }
+      }
+    }
+  }
+}
