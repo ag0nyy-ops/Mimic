@@ -1,3 +1,5 @@
+> **License:** source-available, view and learn only. Not open source. See [LICENSE](LICENSE) before cloning, forking or using this code.
+
 # Mimic
 
 Mimic a game on your discord rich presence, so you can be the best larp in the world.
@@ -79,4 +81,6 @@ For personal and novelty use. Faking a rich presence may conflict with Discord's
 
 ## License
 
-[MIT](LICENSE)
+Source-available, view and learn only. See [LICENSE](LICENSE).
+
+Not covered by it: `shared/games.json` is a list of game names and application IDs that come from Discord, and the bundled fonts stay under the SIL Open Font License (see above).
