@@ -2184,7 +2184,7 @@ checksum = "d5848f5a9e8117cf94f2f90faac24a87ff81600ff8628c1e3deaab572e76bfa1"
 
 [[package]]
 name = "mimic"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "log",
  "mimic-core",
@@ -2201,7 +2201,7 @@ dependencies = [
 
 [[package]]
 name = "mimic-core"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "log",
  "serde",

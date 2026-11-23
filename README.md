@@ -10,7 +10,7 @@ Pick any game from discord's own list, write what your profile should say (detai
 > - `docs/screenshots/game-picker.png`: the searchable game picker
 > - `docs/screenshots/tray.png`: tray menu with quick switch
 
-**Status:** the Windows app is done and ready for testing. A macOS version is planned for later and will live in its own folder; the spec in [`shared/`](shared/) is written so both apps can use it.
+**Status:** the Windows app is done and ready for testing. macOS and Linux versions are still to come, each in its own folder; the spec in [`shared/`](shared/) is written so every app can use it.
 
 ## What it does
 

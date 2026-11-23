@@ -1,6 +1,6 @@
 [package]
 name = "mimic-core"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 description = "Discord rich presence over local ipc: frame codec, payload builder, debounce and connection manager. No platform code except the named pipe connector."
 license = "MIT"
