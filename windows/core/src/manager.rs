@@ -91,6 +91,8 @@ impl ManagerConfig {
     }
 }
 
+// Commands are rare and short lived, so the size gap between variants doesn't matter.
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug)]
 enum Command {
     Set {

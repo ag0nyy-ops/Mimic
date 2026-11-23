@@ -12,7 +12,7 @@ use mimic_core::app::AppState;
 /// discord's ipc is a named pipe on windows. Other platforms only exist so the
 /// crate can be type checked on a dev machine.
 #[cfg(windows)]
-type PlatformConnector = mimic_core::pipe::PipeConnector;
+use mimic_core::pipe::PipeConnector as PlatformConnector;
 
 #[cfg(not(windows))]
 use unsupported::UnsupportedConnector as PlatformConnector;
@@ -85,7 +85,7 @@ pub fn run() {
             std::fs::create_dir_all(&dir)?;
 
             let (manager, presence) =
-                Manager::new(PlatformConnector::default(), ManagerConfig::new(std::process::id()));
+                Manager::new(PlatformConnector, ManagerConfig::new(std::process::id()));
             tauri::async_runtime::spawn(manager.run());
 
             let state = Arc::new(AppState::load(dir, presence.clone()));

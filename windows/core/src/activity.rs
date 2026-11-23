@@ -205,7 +205,7 @@ fn check_url(index: usize, raw: &str) -> Result<String, ActivityError> {
     if !matches!(parsed.scheme(), "http" | "https") {
         return Err(fail(UrlProblem::NotHttp));
     }
-    if parsed.host_str().map_or(true, str::is_empty) {
+    if parsed.host_str().is_none_or(str::is_empty) {
         return Err(fail(UrlProblem::Unparseable));
     }
     Ok(raw.to_owned())

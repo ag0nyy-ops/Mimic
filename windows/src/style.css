@@ -211,7 +211,6 @@
   .stamp--wip { border-style: dashed; }          /* in progress */
   .stamp--solid { background: var(--fg); color: var(--bg); border-color: var(--fg); }  /* a problem */
   .stamp--quiet { color: var(--muted); }
-  .stamp--big { font-size: .9rem; padding: .7rem 1rem; border-width: 2px; rotate: -7deg; }
 
   /* ---------------- the eye (built from gradients and two masks) ----------------
      Geometry (box W x W/2): the almond is where two circles of radius 62.5% of W
