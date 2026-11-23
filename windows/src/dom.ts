@@ -1,3 +1,5 @@
+// mimic · © 2026 Jay · https://github.com/ag0nyy-ops/mimic · MIT, see LICENSE
+//
 // A tiny hyperscript helper plus the icons. No framework needed for this ui.
 
 type Child = Node | string | number | null | false | undefined;

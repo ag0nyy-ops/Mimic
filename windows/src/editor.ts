@@ -1,3 +1,5 @@
+// mimic · © 2026 Jay · https://github.com/ag0nyy-ops/mimic · MIT, see LICENSE
+//
 // The preset editor form. It edits one draft preset in place and tells the
 // caller whenever something changed.
 
@@ -59,14 +61,16 @@ export class Editor {
   private nameInput!: HTMLInputElement;
   private gameName!: HTMLElement;
   private gameChip!: HTMLElement;
+  private caseLabel = h("div", { class: "label" });
 
   constructor(private hooks: EditorHooks) {
     this.buildHead();
     this.buildBody();
   }
 
-  load(preset: Preset): void {
+  load(preset: Preset, caseNo: number): void {
     this.draft = preset;
+    this.caseLabel.textContent = `Case ${String(caseNo).padStart(3, "0")} / Preset`;
     for (const fn of this.loaders) fn(preset);
     this.setError(null, null);
   }
@@ -140,11 +144,12 @@ export class Editor {
     return group;
   }
 
-  private card(title: string, subtitle: string | null, ...children: Array<HTMLElement | null>): HTMLElement {
+  /** `label` is the small mono tag; the "FILE 0n /" number in front of it comes from css. */
+  private card(label: string, title: string, subtitle: string | null, ...children: Array<HTMLElement | null>): HTMLElement {
     return h(
       "section",
-      { class: "card" },
-      h("div", { class: "card-head" }, h("h3", null, title), subtitle ? h("p", null, subtitle) : null),
+      { class: "card", "aria-label": title },
+      h("div", { class: "card-head" }, h("div", { class: "label" }, label), h("h2", null, title), subtitle ? h("p", null, subtitle) : null),
       ...children,
     );
   }
@@ -171,22 +176,23 @@ export class Editor {
       "button",
       { class: "game-chip", type: "button", onclick: () => this.hooks.onChangeGame() },
       icon("gamepad", 15),
-      h("span", { class: "game-chip-text" }, this.gameName),
-      h("span", { class: "game-chip-swap" }, icon("swap", 14), "Change"),
+      this.gameName,
+      h("span", { class: "game-chip-swap" }, icon("swap", 12), "Change"),
     );
 
     this.head.append(
       h(
         "div",
         { class: "head-main" },
+        this.caseLabel,
         this.nameInput,
         this.gameChip,
       ),
       h(
         "div",
         { class: "head-actions" },
-        h("button", { class: "icon-btn", type: "button", title: "Duplicate preset", onclick: () => this.hooks.onDuplicate() }, icon("copy")),
-        h("button", { class: "icon-btn danger", type: "button", title: "Delete preset", onclick: () => this.hooks.onDelete() }, icon("trash")),
+        h("button", { class: "icon-btn", type: "button", title: "Duplicate preset", "aria-label": "Duplicate preset", onclick: () => this.hooks.onDuplicate() }, icon("copy")),
+        h("button", { class: "icon-btn danger", type: "button", title: "Delete preset", "aria-label": "Delete preset", onclick: () => this.hooks.onDelete() }, icon("trash")),
       ),
     );
 
@@ -205,6 +211,7 @@ export class Editor {
 
   private textSection(): HTMLElement {
     return this.card(
+      "Details",
       "What you're doing",
       null,
       this.text({
@@ -231,6 +238,7 @@ export class Editor {
   private imageSection(): HTMLElement {
     const row = (a: HTMLElement, b: HTMLElement) => h("div", { class: "row2" }, a, b);
     return this.card(
+      "Images",
       "Images",
       "Asset keys and their hover text",
       this.notice(
@@ -324,7 +332,7 @@ export class Editor {
       seconds.input.value = String(total % 60);
     });
 
-    return this.card("Elapsed timer", null, h("div", { class: "seg" }, ...buttons), offsetRow);
+    return this.card("Timer", "Elapsed timer", null, h("div", { class: "seg" }, ...buttons), offsetRow);
   }
 
   private partySection(): HTMLElement {
@@ -366,6 +374,7 @@ export class Editor {
     this.register("party", group, error);
 
     return this.card(
+      "Party",
       "Party size",
       null,
       h("label", { class: "switch-row", for: "party-toggle" }, toggle, h("span", { class: "switch" }), h("span", null, "Show a party size, like “2 of 4”")),
@@ -401,6 +410,7 @@ export class Editor {
     this.register("buttons", group, generalError);
 
     return this.card(
+      "Buttons",
       "Buttons",
       "Up to two link buttons",
       this.notice(

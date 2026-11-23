@@ -1,7 +1,10 @@
+// mimic · © 2026 Jay · https://github.com/ag0nyy-ops/mimic · MIT, see LICENSE
+
 import "./style.css";
 
 import { api, initBackend, toCmdError, type CmdError, type ConnectionState, type GamesInfo, type Live, type Preset, type Settings } from "./api";
 import { h, icon, clear } from "./dom";
+import { eye, startEyes } from "./eye";
 import { Editor, mapErrorField, padButtons, serializeForSave } from "./editor";
 import { pickGame } from "./picker";
 import { PreviewCard } from "./preview";
@@ -31,6 +34,7 @@ const root = document.getElementById("app")!;
 const preview = new PreviewCard();
 
 const selectedPreset = () => app.presets.find((p) => p.id === app.selectedId) ?? null;
+const caseNo = (id: string | null) => app.presets.findIndex((p) => p.id === id) + 1;
 const isLive = (id: string | null) => id !== null && app.live?.presetId === id;
 
 // ---------------------------------------------------------------- toasts
@@ -96,7 +100,7 @@ const editor = new Editor({
     const wasName = app.draft.name === app.draft.game.name;
     app.draft.game = game;
     if (wasName) app.draft.name = game.name;
-    editor.load(app.draft);
+    editor.load(app.draft, caseNo(app.draft.id));
     renderPreview();
     renderSidebar();
     scheduleSave();
@@ -142,7 +146,7 @@ async function select(id: string | null): Promise<void> {
   app.draft = preset ? { ...structuredClone(preset), buttons: padButtons(preset.buttons) } : null;
   app.problem = null;
   app.previewBase = Math.floor(Date.now() / 1000);
-  if (app.draft) editor.load(app.draft);
+  if (app.draft) editor.load(app.draft, caseNo(app.draft.id));
   renderAll();
   if (app.draft) scheduleSave(); // validates the freshly loaded preset so errors show up straight away
 }
@@ -173,14 +177,15 @@ async function stopLive(): Promise<void> {
 // ---------------------------------------------------------------- sidebar
 
 const sidebarList = h("div", { class: "preset-list" });
-const sidebarPill = h("div", { class: "pill" });
+const sidebarStatus = h("div", { class: "status", role: "status" });
 
-function pillFor(conn: ConnectionState): { tone: string; text: string } {
+/** hollow marker = off, solid = fine, dashed = in progress, inverted = a problem. No colour. */
+function statusFor(conn: ConnectionState): { tone: "off" | "ok" | "wip" | "bad"; text: string } {
   switch (conn.kind) {
     case "idle":
       return { tone: "off", text: "Not connected" };
     case "connecting":
-      return { tone: "warn", text: "Connecting…" };
+      return { tone: "wip", text: "Connecting" };
     case "connected":
       return { tone: "ok", text: conn.username ? `Connected as ${conn.username}` : "Connected" };
     case "discordNotRunning":
@@ -188,26 +193,28 @@ function pillFor(conn: ConnectionState): { tone: string; text: string } {
     case "badAppId":
       return { tone: "bad", text: "Bad app id" };
     case "rateLimited":
-      return { tone: "warn", text: "Rate limited" };
+      return { tone: "wip", text: "Rate limited" };
     case "error":
-      return { tone: "bad", text: "Error" };
+      return { tone: "bad", text: "Fault" };
   }
 }
 
 function renderSidebar(): void {
-  const pill = pillFor(app.conn);
-  sidebarPill.className = `pill ${pill.tone}`;
-  sidebarPill.replaceChildren(h("span", { class: "dot" }), pill.text);
+  const st = statusFor(app.conn);
+  sidebarStatus.className = `status${st.tone === "off" ? "" : ` status--${st.tone}`}`;
+  sidebarStatus.textContent = st.text;
 
   sidebarList.replaceChildren(
-    ...app.presets.map((p) => {
+    ...app.presets.map((p, i) => {
       const live = isLive(p.id);
+      const no = String(i + 1).padStart(3, "0");
       return h(
         "div",
         {
-          class: "preset-item" + (p.id === app.selectedId ? " selected" : "") + (live ? " live" : ""),
+          class: "case" + (p.id === app.selectedId ? " selected" : ""),
           role: "button",
           tabIndex: 0,
+          "aria-pressed": String(p.id === app.selectedId),
           onclick: () => void select(p.id),
           onkeydown: (e: KeyboardEvent) => {
             if (e.key === "Enter" || e.key === " ") {
@@ -216,21 +223,22 @@ function renderSidebar(): void {
             }
           },
         },
-        h("div", { class: "avatar" }, (p.game.name.trim()[0] ?? "?").toUpperCase()),
-        h("div", { class: "preset-text" }, h("div", { class: "preset-name" }, p.name || p.game.name), h("div", { class: "preset-game" }, p.game.name)),
-        live ? h("span", { class: "live-badge" }, "LIVE") : null,
+        h("div", { class: "case__top" }, h("span", { class: "label" }, `Case ${no}`), live ? h("span", { class: "stamp" }, "Live") : null),
+        h("div", { class: "case__name" }, p.name || p.game.name),
+        h("div", { class: "case__game" }, p.game.name),
         h(
           "button",
           {
-            class: "quick" + (live ? " stop" : ""),
+            class: "case__quick",
             type: "button",
             title: live ? "Stop" : "Go live",
+            "aria-label": live ? `Stop ${p.name}` : `Go live with ${p.name}`,
             onclick: (e: MouseEvent) => {
               e.stopPropagation();
               void (live ? stopLive() : select(p.id).then(goLive));
             },
           },
-          icon(live ? "stop" : "play", 14),
+          icon(live ? "stop" : "play", 12),
         ),
       );
     }),
@@ -244,8 +252,11 @@ const actions = h("div", { class: "actions" });
 const previewHost = h("div", { class: "preview-host" });
 previewHost.append(preview.el);
 
+type Tone = "info" | "ok" | "warn" | "bad";
+
 interface BannerSpec {
-  tone: "info" | "ok" | "warn" | "bad";
+  tone: Tone;
+  stamp: string;
   title: string;
   text: string;
   retry?: boolean;
@@ -262,6 +273,7 @@ function bannerSpec(): BannerSpec {
     case "discordNotRunning":
       return {
         tone: "bad",
+        stamp: "No signal",
         title: "Discord isn't running",
         text: `mimic can't find discord on this pc. Start the discord desktop app (the browser version won't work) and mimic connects by itself. Next try in ${secondsLeft(c.retryInMs)}s.`,
         retry: true,
@@ -269,50 +281,65 @@ function bannerSpec(): BannerSpec {
     case "badAppId":
       return {
         tone: "bad",
+        stamp: "Rejected",
         title: "Discord rejected this game's application id",
         text: `${c.message || "Invalid client id"}. Pick a different game, or retry if you think it was a one-off.`,
         retry: true,
       };
-    case "rateLimited": {
-      const s = secondsLeft(c.retryInMs);
+    case "rateLimited":
       return {
         tone: "warn",
+        stamp: "Queued",
         title: "Rate limited",
-        text: `Discord only takes about one presence update every 15 seconds. Your latest edit goes out in ${s}s, and anything you change before then is folded into it.`,
+        text: `Discord only takes about one presence update every 15 seconds. Your latest edit goes out in ${secondsLeft(c.retryInMs)}s, and anything you change before then is folded into it.`,
       };
-    }
     case "error":
-      return { tone: "bad", title: "Discord reported a problem", text: c.message, retry: true };
+      return { tone: "bad", stamp: "Fault", title: "Discord reported a problem", text: c.message, retry: true };
     case "connecting":
-      return { tone: "info", title: "Connecting to discord…", text: "Looking for discord's local ipc pipe." };
+      return { tone: "warn", stamp: "Connecting", title: "Connecting to discord", text: "Looking for discord's local ipc pipe." };
     case "connected":
-      return {
-        tone: "ok",
-        title: live ? `Live as ${live.game.name}` : "Connected to discord",
-        text: live ? "Edits to this preset are sent automatically." : "Nothing is being shown right now.",
-      };
+      return live
+        ? { tone: "ok", stamp: "Live", title: `Live as ${live.game.name}`, text: "Edits to this preset are sent automatically." }
+        : { tone: "ok", stamp: "Connected", title: "Connected to discord", text: "Nothing is being shown right now." };
     case "idle":
-      return app.presets.length
-        ? { tone: "info", title: "Not live", text: "Pick a preset and hit Go live. Nothing is shown on your profile until you do." }
-        : { tone: "info", title: "Not live", text: "Create a preset to get started." };
+      return {
+        tone: "info",
+        stamp: "Standby",
+        title: "Not live",
+        text: app.presets.length ? "Pick a preset and hit Go live. Nothing is shown on your profile until you do." : "Create a preset to get started.",
+      };
   }
 }
 
+let bannerKey = "";
+let bannerText: HTMLElement | null = null;
+
 function renderBanner(): void {
-  const spec = app.problem
-    ? ({ tone: "warn", title: "Not sent to discord", text: app.problem.message } satisfies BannerSpec)
+  const spec: BannerSpec = app.problem
+    ? { tone: "bad", stamp: "Not sent", title: "Not sent to discord", text: app.problem.message }
     : bannerSpec();
-  const iconName = spec.tone === "ok" ? "check" : spec.tone === "info" ? "info" : "alert";
-  banner.className = `banner ${spec.tone}`;
+
+  // The stamp only re-presses when the situation changes. A ticking countdown
+  // just rewrites the sentence, otherwise the stamp would restart every half second.
+  const key = `${spec.tone}|${spec.stamp}|${spec.title}|${spec.retry ? 1 : 0}`;
+  if (key === bannerKey && bannerText) {
+    if (bannerText.textContent !== spec.text) bannerText.textContent = spec.text;
+    return;
+  }
+  bannerKey = key;
+  bannerText = h("div", { class: "banner-text" }, spec.text);
+  banner.className = `banner banner--${spec.tone}`;
+  banner.setAttribute("role", spec.tone === "bad" ? "alert" : "status");
+  const stampClass = spec.tone === "bad" ? "stamp stamp--solid" : spec.tone === "warn" ? "stamp stamp--wip" : spec.tone === "info" ? "stamp stamp--quiet" : "stamp";
   banner.replaceChildren(
-    h("div", { class: "banner-icon" }, icon(iconName, 18)),
+    h("span", { class: stampClass }, spec.stamp),
     h(
       "div",
       { class: "banner-body" },
       h("div", { class: "banner-title" }, spec.title),
-      h("div", { class: "banner-text" }, spec.text),
+      bannerText,
       spec.retry && !app.problem
-        ? h("button", { class: "btn small", type: "button", onclick: () => void api.retryConnection() }, icon("refresh", 14), "Retry now")
+        ? h("button", { class: "btn btn--small", type: "button", onclick: () => void api.retryConnection() }, icon("refresh", 14), "Retry now")
         : null,
     ),
   );
@@ -327,8 +354,8 @@ function renderActions(): void {
   const live = isLive(preset.id);
   actions.replaceChildren(
     live
-      ? h("button", { class: "btn danger big", type: "button", onclick: () => void stopLive() }, icon("stop", 16), "Stop & clear presence")
-      : h("button", { class: "btn primary big", type: "button", onclick: () => void goLive() }, icon("play", 16), "Go live"),
+      ? h("button", { class: "btn btn--big", type: "button", onclick: () => void stopLive() }, icon("stop", 14), "Stop and clear presence")
+      : h("button", { class: "btn btn--solid btn--big", type: "button", onclick: () => void goLive() }, icon("play", 14), "Go live"),
     h(
       "p",
       { class: "hint" },
@@ -336,7 +363,7 @@ function renderActions(): void {
         ? "Stopping closes the connection, which makes discord drop your presence right away."
         : app.live
           ? "Going live here replaces the preset that is live right now."
-          : "Mimic only shows a presence while it's live.",
+          : "mimic only shows a presence while it's live.",
     ),
   );
 }
@@ -377,7 +404,7 @@ function openSettings(): void {
     gamesLine.textContent = `${app.games.count.toLocaleString()} games · ${app.games.source === "bundled" ? "the list that shipped with this version" : "downloaded from discord"}`;
   };
   paintGames();
-  const refreshBtn = h("button", { class: "btn", type: "button" }, icon("refresh", 14), "Refresh game list");
+  const refreshBtn = h("button", { class: "btn btn--small", type: "button" }, icon("refresh", 14), "Refresh game list");
   refreshBtn.addEventListener("click", async () => {
     refreshBtn.disabled = true;
     refreshBtn.classList.add("busy");
@@ -406,7 +433,12 @@ function openSettings(): void {
     h(
       "div",
       { class: "modal settings", role: "dialog", "aria-label": "Settings" },
-      h("div", { class: "modal-head" }, h("h2", null, "Settings"), h("button", { class: "icon-btn", type: "button", title: "Close", onclick: close }, icon("x"))),
+      h(
+        "div",
+        { class: "modal-head" },
+        h("div", null, h("div", { class: "label" }, "File 00 / Settings"), h("h2", null, "Settings")),
+        h("button", { class: "icon-btn", type: "button", title: "Close", "aria-label": "Close settings", onclick: close }, icon("x")),
+      ),
       h(
         "div",
         { class: "settings-body" },
@@ -430,7 +462,7 @@ function openSettings(): void {
         h(
           "div",
           { class: "about" },
-          h("div", null, `mimic ${app.version}`),
+          h("div", { class: "label" }, `mimic ${app.version}`),
           h("div", { class: "hint" }, `Data folder: ${app.dataDir}`),
           h("div", { class: "hint" }, "For personal and novelty use. Faking a rich presence may go against discord's terms of service, so use it at your own risk."),
         ),
@@ -445,10 +477,11 @@ function openSettings(): void {
 const emptyState = h(
   "div",
   { class: "empty" },
-  h("div", { class: "empty-art" }, icon("gamepad", 44)),
-  h("h2", null, "Be whatever you want to be playing"),
-  h("p", null, "Pick any game from discord's list and set exactly what your profile says: details, state, timer, party size and buttons."),
-  h("button", { class: "btn primary big", type: "button", onclick: () => void newPreset() }, icon("plus", 16), "Create your first preset"),
+  eye("eye--hero", 6.4, -3.1),
+  h("div", { class: "label" }, "File 00 / Empty"),
+  h("h2", null, "No cases on file."),
+  h("p", null, "Pick any game from discord's list and write what your profile says: details, state, timer, party size and buttons. Nothing is shown until you go live."),
+  h("button", { class: "btn btn--solid", type: "button", onclick: () => void newPreset() }, icon("plus", 14), "Open the first case"),
 );
 
 async function newPreset(): Promise<void> {
@@ -466,22 +499,28 @@ async function newPreset(): Promise<void> {
 const sidebar = h(
   "aside",
   { class: "sidebar" },
-  h("div", { class: "brand" }, h("div", { class: "logo" }, icon("play", 14)), h("span", null, "mimic")),
-  sidebarPill,
-  h("div", { class: "side-label" }, "Presets"),
+  h("div", { class: "brand" }, eye("eye--logo", 5.3, -1), h("h1", null, "mimic")),
+  h("div", { class: "label brand-sub" }, "Presence, on file"),
+  sidebarStatus,
+  h("div", { class: "label" }, "On file"),
   sidebarList,
-  h("button", { class: "btn new", type: "button", onclick: () => void newPreset() }, icon("plus", 16), "New preset"),
-  h("button", { class: "btn ghost settings-btn", type: "button", onclick: openSettings }, icon("sliders", 16), "Settings"),
+  h(
+    "div",
+    { class: "side-actions" },
+    h("button", { class: "btn btn--dashed", type: "button", onclick: () => void newPreset() }, icon("plus", 14), "New preset"),
+    h("button", { class: "btn btn--quiet", type: "button", onclick: openSettings }, icon("sliders", 14), "Settings"),
+  ),
 );
 
-const editorPane = h("main", { class: "editor-pane" }, editor.head, h("div", { class: "editor-scroll" }, editor.body));
+const editorPane = h("main", { class: "editor-pane", id: "editor" }, editor.head, h("div", { class: "editor-scroll" }, editor.body));
 const sidePane = h(
   "section",
   { class: "side-pane" },
   banner,
-  h("div", { class: "side-label" }, "Live preview"),
+  h("div", { class: "exhibit-head" }, h("div", { class: "label" }, "Exhibit A / Live preview")),
   previewHost,
   actions,
+  eye("eye--margin", 7.7, -2.2),
 );
 const workspace = h("div", { class: "workspace" }, editorPane, sidePane);
 const main = h("div", { class: "main" }, workspace, emptyState);
@@ -498,7 +537,13 @@ function renderAll(): void {
 
 async function boot(): Promise<void> {
   await initBackend();
-  root.append(h("div", { class: "app" }, sidebar, main), toastHost);
+  root.append(
+    h("a", { class: "skip", href: "#editor" }, "Skip to the editor"),
+    h("div", { class: "app" }, sidebar, main),
+    toastHost,
+    h("div", { class: "atmosphere", "aria-hidden": "true" }),
+  );
+  startEyes();
 
   const boot = await api.bootstrap();
   Object.assign(app, {

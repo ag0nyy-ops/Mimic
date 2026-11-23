@@ -1,3 +1,5 @@
+// mimic · © 2026 Jay · https://github.com/ag0nyy-ops/mimic · MIT, see LICENSE
+//
 // Types mirror the rust side (camelCase json) and thin wrappers around invoke().
 
 import { invoke } from "@tauri-apps/api/core";

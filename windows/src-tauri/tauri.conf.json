@@ -17,16 +17,16 @@
         "title": "mimic",
         "width": 1180,
         "height": 760,
-        "minWidth": 960,
+        "minWidth": 1000,
         "minHeight": 600,
         "center": true,
         "visible": false,
-        "backgroundColor": "#1e1f22"
+        "backgroundColor": "#060606"
       }
     ],
     "security": {
-      "csp": "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; connect-src ipc: http://ipc.localhost",
-      "devCsp": "default-src 'self' http://localhost:1420; img-src 'self' data:; style-src 'self' 'unsafe-inline'; connect-src ipc: http://ipc.localhost ws://localhost:1420 http://localhost:1420"
+      "csp": "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; connect-src ipc: http://ipc.localhost",
+      "devCsp": "default-src 'self' http://localhost:1420; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self' data: http://localhost:1420; connect-src ipc: http://ipc.localhost ws://localhost:1420 http://localhost:1420"
     }
   },
   "bundle": {

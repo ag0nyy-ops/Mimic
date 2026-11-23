@@ -1,3 +1,5 @@
+// mimic · © 2026 Jay · https://github.com/ag0nyy-ops/mimic · MIT, see LICENSE
+//
 // The live preview: a card that imitates discord's "Playing a game" activity.
 
 import type { Preset } from "./api";

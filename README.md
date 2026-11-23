@@ -131,6 +131,14 @@ The core crate (`windows/core`) holds everything that matters: frame encoding an
 - the newest `.log` file from mimic's log folder, which is usually `%LOCALAPPDATA%\io.github.ag0nyy-ops.mimic\logs` (paste `%LOCALAPPDATA%\io.github.ag0nyy-ops.mimic` into Explorer's address bar and look for `logs`)
 - `presets.json` from `%APPDATA%\io.github.ag0nyy-ops.mimic` if it's about presets (it only contains game names and the text you typed)
 
+## The look
+
+The interface follows a "classified file that watches you back" style: black and white only, blackletter titles, small wide-spaced mono labels, hairline borders, rubber stamps, film grain and a vignette, and an eye that follows your cursor and blinks. There is no colour anywhere, so status is carried by shape instead: a solid stamp or marker means fine, a dashed one means in progress, and an inverted (filled) one means a problem.
+
+- Fonts are UnifrakturMaguntia, IBM Plex Mono and IBM Plex Sans, self-hosted in `windows/src/assets/fonts/`. They are under the SIL Open Font License 1.1, and the licence texts sit next to the files.
+- Nothing is loaded from the internet by the interface. The only network request mimic ever makes is the game list refresh you start yourself.
+- All motion is css. It does nothing under `prefers-reduced-motion`, and the grain and vignette are dropped under `prefers-contrast: more`.
+
 ## Project layout
 
 ```
@@ -142,13 +150,13 @@ shared/              platform independent spec and data
 windows/
   core/              rust crate with all the logic, tested anywhere (mimic-core)
   src-tauri/         the tauri shell: tray, window, autostart, commands
-  src/               the frontend (vanilla typescript, vite)
+  src/               the frontend (vanilla typescript, vite), assets/ has the fonts and grain
 .github/workflows/   build-windows.yml (tests + installers), release-windows.yml
 ```
 
 ## Why tauri and not egui
 
-The things that make this app feel right are a live preview that looks like a discord card, a dark theme matching discord, and a polished form. All of that is much easier to get right in html and css than in egui's immediate mode widgets. Tauri 2 also gives the tray icon, launch at login, single instance and nsis/msi bundling as ready made pieces. The cost is a small frontend (about 1,400 lines of plain typescript, no framework) and WebView2, which Windows already ships. The backend stays a thin shell over the core crate, which doesn't know tauri exists.
+The things that make this app feel right are a live preview card, a distinctive look, and a polished form. All of that is much easier to get right in html and css than in egui's immediate mode widgets (the blackletter titles, the css-built eye and the scroll-driven effects below would be a fight). Tauri 2 also gives the tray icon, launch at login, single instance and nsis/msi bundling as ready made pieces. The cost is a small frontend (about 1,700 lines of plain typescript and 700 of css, no framework) and WebView2, which Windows already ships. The backend stays a thin shell over the core crate, which doesn't know tauri exists.
 
 ## Notes on choices that were left open
 

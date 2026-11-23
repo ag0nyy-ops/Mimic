@@ -1,3 +1,5 @@
+// mimic · © 2026 Jay · https://github.com/ag0nyy-ops/mimic · MIT, see LICENSE
+//
 // The searchable game picker, shown as a modal.
 
 import type { Game } from "./api";
@@ -17,11 +19,12 @@ export function pickGame(opts: PickerOptions): Promise<Game | null> {
     let debounce: number | undefined;
 
     const list = h("div", { class: "pick-list", role: "listbox" });
-    const count = h("div", { class: "pick-count" });
+    const count = h("div", { class: "label pick-count" });
     const input = h("input", {
       class: "input pick-input",
       type: "text",
-      placeholder: "Search games…",
+      placeholder: "Search games",
+      "aria-label": "Search games",
       autocomplete: "off",
       spellcheck: false,
     });
@@ -55,7 +58,7 @@ export function pickGame(opts: PickerOptions): Promise<Game | null> {
                 h("span", { class: "pick-id" }, g.id),
               ),
             )
-          : [h("div", { class: "pick-empty" }, "No games match that. Try fewer words, or refresh the list in settings.")]),
+          : [h("div", { class: "pick-empty" }, "Nothing on file matches that. Try fewer words, or refresh the list in settings.")]),
       );
       list.scrollTop = 0;
     };
@@ -68,7 +71,7 @@ export function pickGame(opts: PickerOptions): Promise<Game | null> {
       active = 0;
       count.textContent = input.value.trim()
         ? `${found.length}${found.length >= 50 ? "+" : ""} match${found.length === 1 ? "" : "es"}`
-        : `${opts.total.toLocaleString()} games, type to filter`;
+        : `${opts.total.toLocaleString()} games on file`;
       paint();
     };
 
@@ -118,8 +121,8 @@ export function pickGame(opts: PickerOptions): Promise<Game | null> {
         h(
           "div",
           { class: "modal-head" },
-          h("h2", null, opts.title),
-          h("button", { class: "icon-btn", type: "button", title: "Close", onclick: () => close(null) }, icon("x")),
+          h("div", null, h("div", { class: "label" }, "File search"), h("h2", null, opts.title)),
+          h("button", { class: "icon-btn", type: "button", title: "Close", "aria-label": "Close", onclick: () => close(null) }, icon("x")),
         ),
         h("div", { class: "pick-search" }, icon("search", 16), input),
         count,
