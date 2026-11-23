@@ -53,7 +53,7 @@ export async function createMockBackend(): Promise<Backend> {
   if (params.get("state") === "badapp") conn = { kind: "badAppId", message: "Invalid Client ID" };
   if (params.get("state") === "rate") conn = { kind: "rateLimited", retryInMs: 12000 };
   if (params.get("live") === "1" || params.get("state")) live = { presetId: presets[0]?.id ?? "", appliedAt: Math.floor(Date.now() / 1000) - 42 };
-  if (params.get("live") === "1" && !params.get("state")) conn = { kind: "connected", username: "jaymz" };
+  if (params.get("live") === "1" && !params.get("state")) conn = { kind: "connected", username: "player" };
 
   const validate = (p: Preset): SaveResult["error"] => {
     for (let i = 0; i < p.buttons.length; i++) {
@@ -119,7 +119,7 @@ export async function createMockBackend(): Promise<Backend> {
       if (err) throw err;
       live = { presetId: String(id), appliedAt: Math.floor(Date.now() / 1000) };
       setConn({ kind: "connecting" });
-      setTimeout(() => setConn({ kind: "connected", username: "jaymz" }), 700);
+      setTimeout(() => setConn({ kind: "connected", username: "player" }), 700);
       return live;
     },
     stop_live: () => {
