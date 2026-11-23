@@ -1,4 +1,4 @@
-// mimic · © 2026 Jay · https://github.com/ag0nyy-ops/mimic · MIT, see LICENSE
+// mimic · © 2026 Jay · https://github.com/ag0nyy-ops/mimic · source viewable, not reusable: see LICENSE
 //
 // The preset editor form. It edits one draft preset in place and tells the
 // caller whenever something changed.

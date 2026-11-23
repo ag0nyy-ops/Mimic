@@ -3,7 +3,7 @@ name = "mimic"
 version = "0.2.0"
 edition = "2021"
 description = "Set a custom discord rich presence for any game"
-license = "MIT"
+license-file = "../../LICENSE"
 publish = false
 
 [lib]

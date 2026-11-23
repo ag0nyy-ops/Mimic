@@ -1,4 +1,4 @@
-// mimic · © 2026 Jay · https://github.com/ag0nyy-ops/mimic · MIT, see LICENSE
+// mimic · © 2026 Jay · https://github.com/ag0nyy-ops/mimic · source viewable, not reusable: see LICENSE
 //
 // The eye is built entirely in css (see .eye in style.css). This file only
 // creates the markup and feeds css the numbers it can't know: the cursor
