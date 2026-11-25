@@ -1,11 +1,12 @@
 name: build
 
 # Runs the tests and builds the unsigned bundles for windows, macos and linux on
-# every push and pull request. The bundles are uploaded as workflow artifacts
+# every pull request and every push to main. The bundles are uploaded as workflow artifacts
 # so they can be downloaded and tried out. This workflow never creates a release.
 
 on:
   push:
+    branches: [main]
   pull_request:
   workflow_dispatch:
 
@@ -89,7 +90,7 @@ jobs:
         run: npm run tauri -- build ${{ matrix.args }}
 
       - name: List what was built
-        run: ls -lhR ${{ matrix.bundle }} | head -50
+        run: find ${{ matrix.bundle }} -maxdepth 2 -type f -exec ls -lh {} +
 
       - name: Upload bundles
         uses: actions/upload-artifact@v4
