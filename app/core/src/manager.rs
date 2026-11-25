@@ -5,7 +5,7 @@
 //! [`ConnectionState`] to show what's going on.
 //!
 //! What it does:
-//! - tries pipes `0..10` and uses the first one that connects
+//! - tries ipc sockets `0..10` and uses the first one that connects
 //! - handshakes with the wanted `client_id` and waits for READY
 //! - sends the wanted activity, debounced (see [`crate::debounce`])
 //! - answers pings, handles close frames and ERROR dispatches
@@ -16,7 +16,8 @@
 //!   when its socket closes)
 //!
 //! The transport is abstracted behind [`Connector`], so tests drive the whole
-//! thing over in-memory pipes and the windows build plugs in named pipes.
+//! thing over in-memory pipes, and the app plugs in [`crate::ipc::PlatformConnector`]
+//! (named pipes on windows, unix sockets on macos and linux).
 
 use std::future::Future;
 use std::io;

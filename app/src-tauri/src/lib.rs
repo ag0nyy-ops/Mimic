@@ -9,58 +9,8 @@ use tauri_plugin_autostart::MacosLauncher;
 
 use mimic_core::app::AppState;
 
-/// discord's ipc is a named pipe on windows. Other platforms only exist so the
-/// crate can be type checked on a dev machine.
-#[cfg(windows)]
-use mimic_core::pipe::PipeConnector as PlatformConnector;
-
-#[cfg(not(windows))]
-use unsupported::UnsupportedConnector as PlatformConnector;
-
-#[cfg(not(windows))]
-mod unsupported {
-    use std::io;
-    use std::pin::Pin;
-    use std::task::{Context, Poll};
-
-    use mimic_core::manager::Connector;
-    use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
-
-    #[derive(Default)]
-    pub struct UnsupportedConnector;
-
-    /// A stream that can never be constructed.
-    pub enum Never {}
-
-    impl Connector for UnsupportedConnector {
-        type Stream = Never;
-
-        async fn connect(&self, _index: u8) -> io::Result<Never> {
-            Err(io::Error::new(
-                io::ErrorKind::Unsupported,
-                "mimic only talks to discord on windows for now",
-            ))
-        }
-    }
-
-    impl AsyncRead for Never {
-        fn poll_read(self: Pin<&mut Self>, _: &mut Context<'_>, _: &mut ReadBuf<'_>) -> Poll<io::Result<()>> {
-            match *self {}
-        }
-    }
-
-    impl AsyncWrite for Never {
-        fn poll_write(self: Pin<&mut Self>, _: &mut Context<'_>, _: &[u8]) -> Poll<io::Result<usize>> {
-            match *self {}
-        }
-        fn poll_flush(self: Pin<&mut Self>, _: &mut Context<'_>) -> Poll<io::Result<()>> {
-            match *self {}
-        }
-        fn poll_shutdown(self: Pin<&mut Self>, _: &mut Context<'_>) -> Poll<io::Result<()>> {
-            match *self {}
-        }
-    }
-}
+/// Named pipes on windows, a unix socket on macOS and Linux.
+use mimic_core::ipc::PlatformConnector;
 
 pub fn run() {
     let start_hidden = std::env::args().any(|a| a == "--minimized");
@@ -85,7 +35,7 @@ pub fn run() {
             std::fs::create_dir_all(&dir)?;
 
             let (manager, presence) =
-                Manager::new(PlatformConnector, ManagerConfig::new(std::process::id()));
+                Manager::new(PlatformConnector::default(), ManagerConfig::new(std::process::id()));
             tauri::async_runtime::spawn(manager.run());
 
             let state = Arc::new(AppState::load(dir, presence.clone()));
@@ -149,10 +99,22 @@ pub fn run() {
             commands::save_settings,
             commands::set_autostart,
         ])
-        .run(tauri::generate_context!());
+        .build(tauri::generate_context!());
 
-    if let Err(e) = result {
-        eprintln!("mimic failed to start: {e}");
-        std::process::exit(1);
-    }
+    let app = match result {
+        Ok(app) => app,
+        Err(e) => {
+            eprintln!("mimic failed to start: {e}");
+            std::process::exit(1);
+        }
+    };
+
+    app.run(|_app, _event| {
+        // macOS: clicking the dock icon while the window is hidden (closed or
+        // minimized to the tray) brings it back, like any other mac app
+        #[cfg(target_os = "macos")]
+        if let tauri::RunEvent::Reopen { has_visible_windows: false, .. } = _event {
+            tray::show_main_window(_app);
+        }
+    });
 }

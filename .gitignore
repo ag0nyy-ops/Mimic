@@ -6,7 +6,7 @@ node_modules/
 dist/
 
 # tauri
-windows/src-tauri/gen/
+app/src-tauri/gen/
 
 # os / editor
 .DS_Store

@@ -1,5 +1,5 @@
 //! mimic-core: everything needed to talk to discord's local ipc socket, with
-//! no ui and no platform specific code outside of [`pipe`].
+//! no ui and no platform specific code outside of [`ipc`].
 //!
 //! The pieces, bottom to top:
 //!
@@ -13,7 +13,8 @@
 //!   save a preset, restore on launch), shared by the ui commands and the tray
 //! - [`games`], [`preset`], [`settings`], [`storage`]: the game list, saved
 //!   presets and settings, as plain data + json files
-//! - [`pipe`]: the windows named pipe connector (cfg(windows) only)
+//! - [`ipc`]: the platform transports: windows named pipes, unix sockets on
+//!   macOS and Linux, picked at compile time as [`ipc::PlatformConnector`]
 //!
 //! The wire protocol is documented in `shared/README.md`.
 
@@ -26,7 +27,7 @@ pub mod frame;
 pub mod games;
 pub mod manager;
 pub mod message;
-pub mod pipe;
+pub mod ipc;
 pub mod preset;
 pub mod settings;
 pub mod storage;

@@ -1,0 +1,101 @@
+name: build
+
+# Runs the tests and builds the unsigned bundles for windows, macos and linux on
+# every pull request and every push to main. The bundles are uploaded as workflow artifacts
+# so they can be downloaded and tried out. This workflow never creates a release.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: windows
+            os: windows-latest
+            args: ""
+            bundle: target/release/bundle
+            files: |
+              app/target/release/bundle/nsis/*.exe
+              app/target/release/bundle/msi/*.msi
+          # one universal build that runs on apple silicon and intel macs
+          - name: macos
+            os: macos-latest
+            args: --target universal-apple-darwin
+            rust-targets: aarch64-apple-darwin,x86_64-apple-darwin
+            bundle: target/universal-apple-darwin/release/bundle
+            files: |
+              app/target/universal-apple-darwin/release/bundle/dmg/*.dmg
+          # the oldest supported ubuntu, so the appimage runs on more distros
+          - name: linux
+            os: ubuntu-22.04
+            args: ""
+            bundle: target/release/bundle
+            files: |
+              app/target/release/bundle/deb/*.deb
+              app/target/release/bundle/appimage/*.AppImage
+
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: app
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install linux build dependencies
+        if: matrix.name == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libxdo-dev libssl-dev patchelf file
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust-targets }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: app
+          key: ${{ matrix.name }}
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Test everything (core + app glue)
+        run: cargo test --workspace
+
+      - name: Lint
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: Build bundles
+        run: npm run tauri -- build ${{ matrix.args }}
+
+      - name: List what was built
+        run: find ${{ matrix.bundle }} -maxdepth 2 -type f -exec ls -lh {} +
+
+      - name: Upload bundles
+        uses: actions/upload-artifact@v4
+        with:
+          name: mimic-${{ matrix.name }}
+          path: ${{ matrix.files }}
+          if-no-files-found: error
+          retention-days: 30

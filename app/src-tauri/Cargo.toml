@@ -10,11 +10,11 @@ publish = false
 name = "mimic_lib"
 
 [build-dependencies]
-tauri-build = "2"
+tauri-build = { version = "2", features = [] }
 
 [dependencies]
 mimic-core = { path = "../core" }
-tauri = { version = "2", features = ["tray-icon"] }
+tauri = { version = "2", features = ["tray-icon", "image-png"] }
 tauri-plugin-autostart = "2"
 tauri-plugin-log = "2"
 tauri-plugin-single-instance = "2"
@@ -22,7 +22,3 @@ log = "0.4"
 serde = { version = "1", features = ["derive"] }
 # native-tls = schannel on windows, so no extra toolchain is needed to build
 reqwest = { version = "0.12", default-features = false, features = ["native-tls"] }
-
-# only the non-windows type-check stub needs this
-[target.'cfg(not(windows))'.dependencies]
-tokio = { version = "1", features = ["io-util"] }

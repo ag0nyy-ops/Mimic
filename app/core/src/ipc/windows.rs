@@ -1,5 +1,4 @@
-//! The windows named pipe transport. This is the only platform specific piece;
-//! everything else works on any `AsyncRead + AsyncWrite`.
+//! Windows: discord listens on named pipes.
 
 /// `\\.\pipe\discord-ipc-N`
 pub fn pipe_path(index: u8) -> String {
@@ -7,10 +6,10 @@ pub fn pipe_path(index: u8) -> String {
 }
 
 #[cfg(windows)]
-pub use windows_impl::PipeConnector;
+pub use imp::PipeConnector;
 
 #[cfg(windows)]
-mod windows_impl {
+mod imp {
     use std::io;
     use std::time::Duration;
 

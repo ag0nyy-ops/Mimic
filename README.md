@@ -8,7 +8,7 @@ Mimic a game on your discord rich presence, so you can be the best larp in the w
 
 Pick any game from discord's own list, write what your profile should say, and go live. A preview card updates as you type.
 
-**Windows only for now. macOS and Linux versions are still to come.**
+**Windows is tested and works. macOS and Linux builds are new and haven't been tried on real hardware yet.**
 
 <p>
   <img src="docs/screenshots/picker.webp" alt="The searchable game picker" width="49%">
@@ -27,14 +27,17 @@ Pick any game from discord's own list, write what your profile should say, and g
 
 ## Install
 
-1. Download the `.exe` or `.msi` from the [Releases](../../releases) page. Want the latest unreleased build? Open the newest green **build-windows** run under **Actions** and download its `mimic-windows-installers` artifact.
-2. Run it. The installers aren't code signed, so SmartScreen warns: click **More info**, then **Run anyway**.
+Windows installers are on the [Releases](../../releases) page. For macOS and Linux, or the latest unreleased Windows build, open the newest green **build** run under **Actions** and download the `mimic-windows`, `mimic-macos` or `mimic-linux` artifact.
+
+- **Windows:** run the `.exe` or `.msi`. They aren't code signed, so SmartScreen warns: click **More info**, then **Run anyway**.
+- **macOS:** open the `.dmg` and drag mimic into Applications. It's one universal build for Apple silicon and Intel, not notarized, so the first launch is blocked: open **System Settings > Privacy & Security** and click **Open Anyway**.
+- **Linux:** install the `.deb` (`sudo apt install ./mimic_*.deb`) or make the `.AppImage` executable and run it. The tray icon needs an appindicator host (GNOME needs the AppIndicator extension).
 
 Start the **discord desktop app** first (the browser version can't work), then open Mimic, make a preset and hit **Go live**.
 
 ## How it works
 
-Discord's desktop app listens on a local pipe. Mimic connects to it, says which game it is (that game's application id), and sends the status you wrote. Switching games opens a fresh connection with the new id; stopping closes it, which makes discord drop the presence. Updates are batched to stay inside discord's rate limit of about one per 15 seconds. The protocol is written up in [`shared/README.md`](shared/README.md).
+Discord's desktop app listens on a local socket (a named pipe on Windows, a unix socket on macOS and Linux, including the flatpak and snap installs). Mimic connects to it, says which game it is (that game's application id), and sends the status you wrote. Switching games opens a fresh connection with the new id; stopping closes it, which makes discord drop the presence. Updates are batched to stay inside discord's rate limit of about one per 15 seconds. The protocol is written up in [`shared/README.md`](shared/README.md).
 
 ## Good to know
 
@@ -44,14 +47,20 @@ Discord's desktop app listens on a local pipe. Mimic connects to it, says which 
 
 ## Build from source
 
-You need [Rust](https://rustup.rs) with the MSVC toolchain (Visual Studio Build Tools, "Desktop development with C++"), [Node.js](https://nodejs.org) 22+ and WebView2 (already on current Windows). Mimic is a [Tauri 2](https://tauri.app) app, chosen over egui because the live preview and the look are far easier to get right in html and css.
+You need [Rust](https://rustup.rs), [Node.js](https://nodejs.org) 22+ and, per platform:
 
-From `windows/`:
+- **Windows:** the MSVC toolchain (Visual Studio Build Tools, "Desktop development with C++") and WebView2 (already on current Windows)
+- **macOS:** the Xcode command line tools (`xcode-select --install`)
+- **Linux:** `libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libxdo-dev libssl-dev` (Debian/Ubuntu names)
+
+Mimic is a [Tauri 2](https://tauri.app) app, chosen over egui because the live preview and the look are far easier to get right in html and css. One codebase builds for all three; the only platform specific code is the socket connector in `app/core/src/ipc/`.
+
+From `app/`:
 
 ```sh
 npm install
 npm run tauri dev      # run it
-npm run tauri build    # installers land in target/release/bundle/
+npm run tauri build    # bundles land in target/release/bundle/
 cargo test             # the core crate's tests, runs on any os
 ```
 
@@ -61,19 +70,23 @@ cargo test             # the core crate's tests, runs on any os
 
 Try: connect and go live, edit every field, switch games (sidebar and tray), stop, minimize and close to tray, launch at login, and quit discord while live (Mimic should reconnect and bring the presence back by itself).
 
-If something breaks, send what you did, your Windows version, whether discord is Stable, PTB or Canary, and the newest `.log` in `%LOCALAPPDATA%\io.github.ag0nyy-ops.mimic\logs`.
+If something breaks, send what you did, your os and version, whether discord is Stable, PTB or Canary (and on Linux whether it's a deb, flatpak or snap), and the newest `.log` from:
+
+- Windows: `%LOCALAPPDATA%\io.github.ag0nyy-ops.mimic\logs`
+- macOS: `~/Library/Logs/io.github.ag0nyy-ops.mimic`
+- Linux: `~/.local/share/io.github.ag0nyy-ops.mimic/logs`
 
 ## Layout
 
 ```
 shared/      protocol notes, preset schema and the game list (made by scripts/fetch-games.mjs)
-windows/
-  core/      all the logic, tested anywhere
-  src-tauri/ the Tauri shell: tray, window, autostart
+app/
+  core/      all the logic, tested anywhere; ipc/ holds the per-os socket code
+  src-tauri/ the Tauri shell: tray, window, autostart (tauri.<os>.conf.json picks the bundles)
   src/       the interface (TypeScript, no framework)
 ```
 
-The look is a black and white "classified file" style. Its fonts (UnifrakturMaguntia, IBM Plex Mono and Sans) are bundled under the SIL Open Font License, with the licence texts in `windows/src/assets/fonts/`, and the interface loads nothing from the internet.
+The look is a black and white "classified file" style. Its fonts (UnifrakturMaguntia, IBM Plex Mono and Sans) are bundled under the SIL Open Font License, with the licence texts in `app/src/assets/fonts/`, and the interface loads nothing from the internet.
 
 ## Disclaimer
 

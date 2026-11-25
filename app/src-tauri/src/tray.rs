@@ -94,7 +94,10 @@ pub fn init(app: &AppHandle) -> tauri::Result<()> {
     let mut builder = TrayIconBuilder::with_id(TRAY_ID)
         .tooltip("mimic")
         .menu(&menu)
-        .show_menu_on_left_click(false)
+        // windows: left click opens the window, right click the menu.
+        // macOS menu bar items open their menu on a left click. linux tray
+        // icons only ever show the menu, and "Open mimic" is in it.
+        .show_menu_on_left_click(cfg!(target_os = "macos"))
         .on_tray_icon_event(|tray, event| {
             if let TrayIconEvent::Click {
                 button: MouseButton::Left,
@@ -102,15 +105,38 @@ pub fn init(app: &AppHandle) -> tauri::Result<()> {
                 ..
             } = event
             {
-                show_main_window(tray.app_handle());
+                if !cfg!(target_os = "macos") {
+                    show_main_window(tray.app_handle());
+                }
             }
         })
         .on_menu_event(|app, event| on_menu_event(app, event.id().as_ref()));
-    if let Some(icon) = app.default_window_icon() {
-        builder = builder.icon(icon.clone());
-    }
+    builder = with_icon(app, builder)?;
     builder.build(app)?;
     Ok(())
+}
+
+/// macOS: a black on transparent template image, which the menu bar tints to
+/// match light and dark mode like the system icons next to it.
+#[cfg(target_os = "macos")]
+fn with_icon(
+    _app: &AppHandle,
+    builder: TrayIconBuilder<Wry>,
+) -> tauri::Result<TrayIconBuilder<Wry>> {
+    let icon = tauri::image::Image::from_bytes(include_bytes!("../icons/tray-template@2x.png"))?;
+    Ok(builder.icon(icon).icon_as_template(true))
+}
+
+/// windows and linux: the app icon.
+#[cfg(not(target_os = "macos"))]
+fn with_icon(
+    app: &AppHandle,
+    builder: TrayIconBuilder<Wry>,
+) -> tauri::Result<TrayIconBuilder<Wry>> {
+    Ok(match app.default_window_icon() {
+        Some(icon) => builder.icon(icon.clone()),
+        None => builder,
+    })
 }
 
 /// Rebuild the menu and tooltip after presets, the live preset or the
