@@ -2,7 +2,7 @@
 name = "mimic-core"
 version = "0.2.0"
 edition = "2021"
-description = "Discord rich presence over local ipc: frame codec, payload builder, debounce and connection manager. No platform code except the named pipe connector."
+description = "Discord rich presence over local ipc: frame codec, payload builder, debounce and connection manager. No platform code except the ipc transports (windows named pipes, unix sockets on macos and linux)."
 license-file = "../../LICENSE"
 publish = false
 

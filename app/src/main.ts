@@ -296,7 +296,7 @@ function bannerSpec(): BannerSpec {
     case "error":
       return { tone: "bad", stamp: "Fault", title: "Discord reported a problem", text: c.message, retry: true };
     case "connecting":
-      return { tone: "warn", stamp: "Connecting", title: "Connecting to discord", text: "Looking for discord's local ipc pipe." };
+      return { tone: "warn", stamp: "Connecting", title: "Connecting to discord", text: "Looking for discord's local ipc socket." };
     case "connected":
       return live
         ? { tone: "ok", stamp: "Live", title: `Live as ${live.game.name}`, text: "Edits to this preset are sent automatically." }
@@ -450,7 +450,7 @@ function openSettings(): void {
             toast(toCmdError(e).message, "bad");
           }
         }),
-        toggle("Minimize to tray", "Minimizing hides the window instead of leaving it on the taskbar.", app.settings.minimizeToTray, (v) => {
+        toggle("Minimize to tray", "Minimizing hides the window instead of leaving it on the taskbar or dock.", app.settings.minimizeToTray, (v) => {
           app.settings.minimizeToTray = v;
           saveSettings();
         }),

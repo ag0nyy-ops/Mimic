@@ -1,8 +1,7 @@
 # shared spec
 
-Everything in here is platform independent. The windows app reads these files
-today, and a future mac port should be able to build against the same ones
-without changes.
+Everything in here is platform independent. The app reads these files on every
+platform (windows, macos and linux).
 
 | file | what it is |
 | --- | --- |
@@ -40,7 +39,14 @@ is how stable, ptb and canary can coexist.)
 | platform | endpoint |
 | --- | --- |
 | windows | named pipe `\\.\pipe\discord-ipc-N` |
-| macos / linux | unix domain socket `$TMPDIR/discord-ipc-N` (`/tmp` if unset) |
+| macos | unix domain socket `$TMPDIR/discord-ipc-N` (`/tmp` if unset) |
+| linux | unix domain socket `$XDG_RUNTIME_DIR/discord-ipc-N`, else `$TMPDIR`, `$TMP`, `$TEMP`, `/tmp` |
+
+On linux, sandboxed installs of discord put the socket one level down, under
+any of those dirs: `app/com.discordapp.Discord/` (flatpak), `app/com.discordapp.DiscordCanary/`,
+`app/dev.vencord.Vesktop/` and `.flatpak/dev.vencord.Vesktop/xdg-run/` (vesktop),
+`snap.discord/` and `snap.discord-canary/` (snap). mimic tries the plain spots
+first, then those. The list lives in `app/core/src/ipc/unix.rs`.
 
 The mac app must not run in the app sandbox, because the sandbox blocks that path.
 

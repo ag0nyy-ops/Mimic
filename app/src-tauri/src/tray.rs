@@ -94,7 +94,10 @@ pub fn init(app: &AppHandle) -> tauri::Result<()> {
     let mut builder = TrayIconBuilder::with_id(TRAY_ID)
         .tooltip("mimic")
         .menu(&menu)
-        .show_menu_on_left_click(false)
+        // windows: left click opens the window, right click the menu.
+        // macOS menu bar items open their menu on a left click. linux tray
+        // icons only ever show the menu, and "Open mimic" is in it.
+        .show_menu_on_left_click(cfg!(target_os = "macos"))
         .on_tray_icon_event(|tray, event| {
             if let TrayIconEvent::Click {
                 button: MouseButton::Left,
@@ -102,7 +105,9 @@ pub fn init(app: &AppHandle) -> tauri::Result<()> {
                 ..
             } = event
             {
-                show_main_window(tray.app_handle());
+                if !cfg!(target_os = "macos") {
+                    show_main_window(tray.app_handle());
+                }
             }
         })
         .on_menu_event(|app, event| on_menu_event(app, event.id().as_ref()));

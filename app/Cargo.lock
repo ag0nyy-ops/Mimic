@@ -2195,7 +2195,6 @@ dependencies = [
  "tauri-plugin-autostart",
  "tauri-plugin-log",
  "tauri-plugin-single-instance",
- "tokio",
 ]
 
 [[package]]
